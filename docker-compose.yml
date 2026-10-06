@@ -1,0 +1,91 @@
+# Cluster học tập Big Data: HDFS (1 NameNode + 2 DataNode) + Spark (1 Master + 2 Worker)
+# Dùng bộ image chuẩn "big-data-europe" (bde2020) — cấu hình qua biến môi trường.
+# Chạy:   docker compose up -d
+# Thử:    docker exec spark-master spark-submit --master spark://spark-master:7077 /jobs/smoke_test.py
+# Dừng:   docker compose down        (thêm -v nếu muốn xóa data HDFS)
+
+x-common-env: &common-env
+  CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    ports:
+      - "9870:9870"   # Web UI của HDFS
+      - "8020:8020"   # HDFS (mở ra host để tiện debug)
+    environment:
+      <<: *common-env
+      CLUSTER_NAME: bigdata-lab
+    volumes:
+      - namenode_data:/hadoop/dfs/name
+      - ./data:/data_host          # file trên máy bạn nằm ở /data_host trong container
+    networks: [bigdata]
+
+  datanode1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode1
+    depends_on: [namenode]
+    environment:
+      <<: *common-env
+    volumes:
+      - datanode1_data:/hadoop/dfs/data
+    networks: [bigdata]
+
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode2
+    depends_on: [namenode]
+    environment:
+      <<: *common-env
+    volumes:
+      - datanode2_data:/hadoop/dfs/data
+    networks: [bigdata]
+
+  spark-master:
+    image: mua/spark-master:3.3.0-hadoop3.3
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: spark-master
+    depends_on: [namenode, datanode1, datanode2]
+    ports:
+      - "8080:8080"   # Spark Web UI
+      - "7077:7077"   # Spark master (mở ra host để tiện debug)
+    environment:
+      <<: *common-env
+      SPARK_MASTER_HOST: spark-master
+      SPARK_MASTER_PORT: 7077
+      SPARK_MASTER_WEBUI_PORT: 8080
+    volumes:
+      - ./jobs:/jobs               # code bài tập mount vào container để spark-submit
+    networks: [bigdata]
+
+  spark-worker1:
+    image: bde2020/spark-worker:3.3.0-hadoop3.3
+    container_name: spark-worker1
+    depends_on: [spark-master]
+    environment:
+      <<: *common-env
+      SPARK_WORKER_CORES: 1
+      SPARK_WORKER_MEMORY: 768m
+    networks: [bigdata]
+
+  spark-worker2:
+    image: bde2020/spark-worker:3.3.0-hadoop3.3
+    container_name: spark-worker2
+    depends_on: [spark-master]
+    environment:
+      <<: *common-env
+      SPARK_WORKER_CORES: 1
+      SPARK_WORKER_MEMORY: 768m
+    networks: [bigdata]
+
+volumes:
+  namenode_data:
+  datanode1_data:
+  datanode2_data:
+
+networks:
+  bigdata:
+    name: bigdata

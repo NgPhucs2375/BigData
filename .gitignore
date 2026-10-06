@@ -1,0 +1,43 @@
+# Downloaded datasets, processed data, streaming output and generated charts
+/data/
+/charts/
+
+# Python bytecode, virtual environments and tool caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local credentials and environment settings
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+
+# Spark / Hadoop runtime artifacts
+spark-warehouse/
+metastore_db/
+derby.log
+*.crc
+*.log
+
+# Editors, operating system files and temporary files
+.idea/
+.vscode/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.bak
+*.swp
+*~

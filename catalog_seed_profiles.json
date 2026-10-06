@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "provenance": "editorial_demo_profile",
+  "description": "Quy ước biên tập cho các mẫu seed MÙA: collection demo unisex. Style/season là nhãn merchandising đề xuất, không phải thuộc tính đã xác minh từ nhà sản xuất hay hành vi người dùng thật. Không bổ sung GSM hay tỷ lệ vật liệu nếu thiếu nguồn.",
+  "profiles": {
+    "boxy-heavy-tee": {
+      "category": "basic-t-shirt", "gender": "unisex",
+      "style": ["basic", "minimal"], "season": ["all-season"], "brand": "mua"
+    },
+    "cropped-knit-polo": {
+      "category": "polo", "gender": "unisex",
+      "style": ["casual", "preppy"], "season": ["summer"], "brand": "mua"
+    },
+    "linen-camp-shirt": {
+      "category": "casual-shirt", "gender": "unisex",
+      "style": ["casual", "minimal"], "season": ["summer"], "brand": "mua"
+    },
+    "oxford-overshirt": {
+      "category": "overshirt", "gender": "unisex",
+      "style": ["casual", "workwear"], "season": ["autumn"], "brand": "mua"
+    },
+    "pleated-wide-trouser": {
+      "category": "wide-leg-trousers", "gender": "unisex",
+      "style": ["formal", "smart-casual"], "season": ["autumn", "winter"], "brand": "mua"
+    },
+    "straight-denim": {
+      "category": "straight-jeans", "gender": "unisex",
+      "style": ["casual", "basic"], "season": ["all-season"], "brand": "mua"
+    },
+    "parachute-cargo-pant": {
+      "category": "cargo-pants", "gender": "unisex",
+      "style": ["streetwear", "workwear"], "season": ["all-season"], "brand": "mua"
+    },
+    "coach-jacket": {
+      "category": "jacket", "gender": "unisex",
+      "style": ["streetwear", "casual"], "season": ["autumn", "winter"], "brand": "mua"
+    },
+    "wool-beanie": {
+      "category": "beanie", "gender": "unisex",
+      "style": ["casual", "streetwear"], "season": ["winter"], "brand": "mua",
+      "color_aliases": {"Rust": "brown"}
+    },
+    "canvas-tote-bag": {
+      "category": "tote-bag", "gender": "unisex",
+      "style": ["basic", "minimal"], "season": ["all-season"], "brand": "mua"
+    },
+    "knit-cardigan-scheduled": {
+      "category": "cardigan", "gender": "unisex",
+      "style": ["casual", "minimal"], "season": ["autumn", "winter"], "brand": "mua"
+    }
+  }
+}

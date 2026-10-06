@@ -1,0 +1,9 @@
+# Image Spark Master cho lab MÙA: image gốc bde2020 + numpy cho pyspark.ml
+# (pyspark.ml import numpy lúc nạp — không có là chết ngay từ dòng import)
+FROM bde2020/spark-master:3.3.0-hadoop3.3
+
+# Image bde2020 dựa trên Alpine (trình gói apk, không có apt-get) —
+# chuỗi || để tự rơi sang phương án khác nếu apk/apt không tồn tại trên nền thực tế.
+RUN apk add --no-cache py3-numpy \
+ || (apt-get update && apt-get install -y --no-install-recommends python3-numpy) \
+ || python3 -m pip install --no-cache-dir numpy
