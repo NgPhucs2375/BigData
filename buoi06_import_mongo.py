@@ -1,5 +1,5 @@
 # Buổi 6a (bước 2) — Nạp vào MongoDB ec_store:
-#   1) 300 sản phẩm mô phỏng vào collection `products` (schema khớp app MÙA: camelCase, Decimal128, Id 24-hex)
+#   1) 500 sản phẩm mô phỏng vào collection `products` (schema khớp app MÙA: camelCase, Decimal128, Id 24-hex)
 #   2) Bảng gợi ý Top-10 vào collection mới `suggestions`
 # Chạy (máy host, MongoDB của MÙA đang chạy):  python buoi06_import_mongo.py
 # Chạy lại an toàn (idempotent): sản phẩm chỉ import 1 lần, suggestions được ghi đè.
@@ -20,32 +20,29 @@ def slugify(s: str) -> str:
 
 
 def import_products(db) -> dict:
-    """Import 300 sản phẩm mô phỏng; trả về map item_id ('i00001') -> _id của product."""
+    """Import catalog ALS; trả về map item_id ('i00001') -> _id của product."""
     item_to_id = {}
     existing = db.products.find(
         {"attributes.itemId": {"$exists": True}}, {"_id": 1, "name": 1, "attributes.itemId": 1}
     )
     for p in existing:
         item_to_id[p["attributes"]["itemId"]] = p["_id"]
-    if item_to_id:
-        # Sản phẩm đã import trước đó -> chỉ làm mới ảnh về tông grayscale (idempotent)
-        for item_id, pid in item_to_id.items():
-            db.products.update_one(
-                {"_id": pid},
-                {"$set": {"media": [{
-                    "kind": "image",
-                    "url": f"https://picsum.photos/seed/{item_id}/600/800?grayscale",
-                    "alt": "",
-                    "position": 0,
-                }]}},
-            )
-        print(f"products: đã cập nhật ảnh grayscale cho {len(item_to_id)} sản phẩm")
-        return item_to_id
 
     docs = []
     with open(os.path.join(BASE, "data", "items.jsonl"), encoding="utf-8") as f:
         for line in f:
             it = json.loads(line)
+            if it["item_id"] in item_to_id:
+                db.products.update_one(
+                    {"_id": item_to_id[it["item_id"]]},
+                    {"$set": {"media": [{
+                        "kind": "image",
+                        "url": f"https://picsum.photos/seed/{it['item_id']}/600/800?grayscale",
+                        "alt": it["name"],
+                        "position": 0,
+                    }]}},
+                )
+                continue
             pid = uuid.uuid4().hex  # 24-hex string, khớp DocumentBase.Id của app
             item_to_id[it["item_id"]] = pid
             docs.append({
@@ -79,8 +76,12 @@ def import_products(db) -> dict:
                 "updatedAt": NOW,
                 "schemaVersion": 1,
             })
-    db.products.insert_many(docs)
-    print(f"products: đã import {len(docs)} sản phẩm mô phỏng")
+    if docs:
+        db.products.insert_many(docs)
+    print(
+        f"products: thêm {len(docs)} sản phẩm mô phỏng, "
+        f"tổng catalog ALS = {len(item_to_id)}"
+    )
     return item_to_id
 
 

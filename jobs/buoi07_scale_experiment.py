@@ -34,7 +34,7 @@ print("\nsize      | train    | fit(s)  | RMSE")
 print("----------+----------+---------+--------")
 for size in [100_000, 300_000, total]:
     sample = ratings if size >= total else ratings.orderBy(F.rand(seed=7)).limit(size)
-    tr, te = sample.randomSplit([0.8, 0.2], seed=42)
+    tr, _va, te = sample.randomSplit([0.7, 0.1, 0.2], seed=42)
     tr = tr.cache()
     te = te.cache()
     n_train = tr.count()

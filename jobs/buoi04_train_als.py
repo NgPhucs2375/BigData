@@ -28,9 +28,10 @@ titles = (
     .select(F.col("_c0").cast("int").alias("item_id"), F.col("_c1").alias("title"))
 )
 
-# ---- 3. Chia train/test 80/20 ----
-train, test = ratings.randomSplit([0.8, 0.2], seed=42)
-print(f"train: {train.count()} ratings | test: {test.count()} ratings")
+# ---- 3. Chia train/valid/test 70/10/20 ----
+# valid: chọn cấu hình; test: niêm phong, chỉ báo cáo cuối.
+train, valid, test = ratings.randomSplit([0.7, 0.1, 0.2], seed=42)
+print(f"train: {train.count()} ratings | valid: {valid.count()} ratings | test: {test.count()} ratings")
 
 # ---- 4. Huấn luyện ALS ----
 # rank = số chiều vector "gu" ẩn của user/item (k)
@@ -42,12 +43,13 @@ als = ALS(
 )
 model = als.fit(train)
 
-# ---- 5. Đánh giá trên tập test ----
-preds = model.transform(test)
-rmse = RegressionEvaluator(
+# ---- 5. Đánh giá: chọn trên valid, báo cáo cuối trên test ----
+evaluator = RegressionEvaluator(
     metricName="rmse", labelCol="rating", predictionCol="prediction"
-).evaluate(preds)
-print(f"\nRMSE (test) = {rmse:.4f}")
+)
+valid_rmse = evaluator.evaluate(model.transform(valid))
+test_rmse = evaluator.evaluate(model.transform(test))
+print(f"\nRMSE valid = {valid_rmse:.4f} | RMSE test = {test_rmse:.4f}")
 print("(RMSE 0.9 = dự đoán lệch trung bình ~0.9 điểm trên thang 5 điểm)")
 
 # ---- 6. Gợi ý Top-3 cho vài user, kèm tên phim ----

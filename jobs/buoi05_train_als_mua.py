@@ -1,4 +1,4 @@
-# Buổi 5 — Huấn luyện ALS trên dữ liệu thời trang MÙA (748K ratings) + đánh giá
+# Buổi 5 — Huấn luyện ALS trên dữ liệu thời trang MÙA (khoảng 1.9M ratings) + đánh giá
 #
 # Có 2 điều đặc biệt ở buổi này:
 # 1. So sánh ALS với BASELINE "điểm trung bình của sản phẩm" — model phải hơn baseline mới đáng tiền.
@@ -33,11 +33,13 @@ items = (
 print(f"ratings: {ratings.count():,} | users: {ratings.select('user_int').distinct().count()} | "
       f"items: {ratings.select('item_int').distinct().count()}")
 
-# ---- 2. Chia train/test 80/20 ----
-train, test = ratings.randomSplit([0.8, 0.2], seed=42)
+# ---- 2. Chia train/valid/test 70/10/20 ----
+# valid: chọn cấu hình tốt nhất. test: "niêm phong", chỉ mở 1 lần cuối để báo cáo.
+train, valid, test = ratings.randomSplit([0.7, 0.1, 0.2], seed=42)
 train.cache()
+valid.cache()
 test.cache()
-print(f"train: {train.count():,} | test: {test.count():,}")
+print(f"train: {train.count():,} | valid: {valid.count():,} | test: {test.count():,}")
 
 # ---- 3. Baseline: "gợi ý phổ biến" — đoán điểm = trung bình của từng sản phẩm trên train ----
 means = train.groupBy("item_int").agg(F.avg("rating").alias("item_mean"))
@@ -48,7 +50,7 @@ rmse_baseline = RegressionEvaluator(
 ).evaluate(baseline)
 print(f"\nRMSE baseline (item mean) = {rmse_baseline:.4f}  <- ALS phải nhỏ hơn con số này")
 
-# ---- 4. Huấn luyện ALS với 3 bộ tham số, chọn cái tốt nhất ----
+# ---- 4. Huấn luyện ALS với 3 bộ tham số, chọn cái tốt nhất TRÊN VALID ----
 def fit_eval(rank, reg):
     als = ALS(
         userCol="user_int", itemCol="item_int", ratingCol="rating",
@@ -56,23 +58,28 @@ def fit_eval(rank, reg):
         coldStartStrategy="drop",
     )
     model = als.fit(train)
-    preds = model.transform(test)
-    rmse = RegressionEvaluator(metricName="rmse", labelCol="rating",
-                               predictionCol="prediction").evaluate(preds)
-    mae = RegressionEvaluator(metricName="mae", labelCol="rating",
-                              predictionCol="prediction").evaluate(preds)
-    print(f"ALS  rank={rank:3d} regParam={reg} -> RMSE={rmse:.4f} | MAE={mae:.4f}")
-    return model, rmse
+    valid_rmse = RegressionEvaluator(metricName="rmse", labelCol="rating",
+                                     predictionCol="prediction").evaluate(model.transform(valid))
+    print(f"ALS  rank={rank:3d} regParam={reg} -> VALID RMSE={valid_rmse:.4f}")
+    return model, valid_rmse
 
-best_model, best_rmse = None, float("inf")
+best_model, best_valid_rmse = None, float("inf")
 for rank, reg in [(5, 0.1), (10, 0.1), (20, 0.1)]:
     model, rmse = fit_eval(rank, reg)
-    if rmse < best_rmse:
-        best_model, best_rmse = model, rmse
-print(f"\nConfig tốt nhất có RMSE = {best_rmse:.4f}")
+    if rmse < best_valid_rmse:
+        best_model, best_valid_rmse = model, rmse
+print(f"\nConfig tốt nhất trên valid có RMSE = {best_valid_rmse:.4f}")
+
+# ---- 4b. Báo cáo cuối trên TEST (niêm phong — chỉ mở đúng 1 lần) ----
+test_preds = best_model.transform(test)
+test_rmse = RegressionEvaluator(metricName="rmse", labelCol="rating",
+                                predictionCol="prediction").evaluate(test_preds)
+test_mae = RegressionEvaluator(metricName="mae", labelCol="rating",
+                               predictionCol="prediction").evaluate(test_preds)
+print(f"TEST (giữ kín khi chọn model) -> RMSE={test_rmse:.4f} | MAE={test_mae:.4f}")
 
 # ---- 5. Kiểm chứng "học đúng gu": gợi ý Top-5 cho 2 user + đối chiếu style user đã thích ----
-SAMPLE_USERS = [1, 2500]
+SAMPLE_USERS = [1, 2500, 5000, 7500, 9999]
 recs = best_model.recommendForAllUsers(5)
 (
     recs.filter(F.col("user_int").isin(SAMPLE_USERS))

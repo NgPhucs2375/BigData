@@ -6,21 +6,27 @@
 # User ở đây có ID ổn định (u00001...) — giải quyết luôn bài toán MÙA không có userId.
 #
 # Chạy:  python buoi03_generate_ratings.py
-#        (mặc định: 5000 users, 300 items, ~200 rating/user tối đa ≈ 750K ratings)
+# (mặc định: 10000 users, 500 items, ~250 rating/user tối đa ≈ 1.9M ratings)
 import argparse
 import json
 import os
 import random
+import sys
 import time
 
 STYLES = ["minimal", "oversize", "streetwear", "classic"]
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--users", type=int, default=5000)
-    ap.add_argument("--items", type=int, default=300)
-    ap.add_argument("--per-user", type=int, default=200)
+    ap.add_argument("--users", type=int, default=10000)
+    ap.add_argument("--items", type=int, default=500)
+    ap.add_argument("--per-user", type=int, default=250)
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
     rng = random.Random(args.seed)
@@ -66,6 +72,23 @@ def main():
                     "ts": int(time.time()) - rng.randrange(0, 86400 * 90),
                 }, ensure_ascii=False) + "\n")
                 total += 1
+    eval_users = {
+        "minimal": "u00001",
+        "oversize": "u02500",
+        "classic": "u05000",
+        "streetwear": "u07500",
+        "mixed_holdout": "u09999",
+    }
+    with open(os.path.join(data_dir, "evaluation_users.json"), "w", encoding="utf-8") as out:
+        json.dump({
+            "seed": args.seed,
+            "users": args.users,
+            "items": args.items,
+            "ratings": total,
+            "split": {"train": 0.7, "validation": 0.1, "test": 0.2},
+            "demo_users": eval_users,
+            "note": "Spark randomSplit seed=42 is used by the ALS and ranking jobs.",
+        }, out, ensure_ascii=False, indent=2)
     print(f"ratings.jsonl: {total:,} ratings cho {args.users} users x {args.items} items "
           f"trong {time.time() - start:.1f}s")
 

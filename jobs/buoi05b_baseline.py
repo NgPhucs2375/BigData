@@ -18,7 +18,9 @@ ratings = (
     .withColumn("item_int", F.substring("item_id", 2, 10).cast("int"))
 )
 
-train, test = ratings.randomSplit([0.8, 0.2], seed=42)
+# Cùng seed 42 và tỉ lệ 70/10/20 với Buổi 5 -> test set giống hệt, số liệu nhất quán.
+# Baseline không có siêu tham số để chọn nên không cần valid — chỉ dùng train + test.
+train, _valid, test = ratings.randomSplit([0.7, 0.1, 0.2], seed=42)
 
 # Baseline "gợi ý phổ biến": đoán điểm của 1 sản phẩm = trung bình rating nó nhận được trên train.
 # Sản phẩm lạ chưa có trong train -> dùng trung bình toàn cục.

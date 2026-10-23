@@ -28,8 +28,8 @@ ratings = (
     .withColumn("item_int", F.substring("item_id", 2, 10).cast("int"))
 )
 
-# Cùng seed 42, cùng tỉ lệ 80/20 với Buổi 5 -> test set giống hệt, số liệu nhất quán
-train, test = ratings.randomSplit([0.8, 0.2], seed=42)
+# Cùng seed 42, cùng tỉ lệ 70/10/20 với Buổi 5 -> test set giống hệt, số liệu nhất quán
+train, _valid, test = ratings.randomSplit([0.7, 0.1, 0.2], seed=42)
 
 relevant = (
     test.filter(F.col("rating") >= GOOD_RATING)

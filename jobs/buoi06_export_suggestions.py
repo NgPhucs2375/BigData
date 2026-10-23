@@ -4,9 +4,17 @@
 #   docker exec spark-master /spark/bin/spark-submit --master spark://spark-master:7077 /jobs/buoi06_export_suggestions.py 2>nul
 #   docker exec namenode hdfs dfs -getmerge /mua/export/suggestions /data_host/suggestions.json
 # -> file kết quả nằm tại BigData/code/data/suggestions.json (nhờ mount /data_host)
+#
+# Biến môi trường (mặc định = bản benchmark):
+#   MUA_SRC — parquet nguồn   (vd live train: /mua/parquet/suggestions_top10_live)
+#   MUA_OUT — thư mục JSON ra (vd live train: /mua/export/suggestions_live)
+import os
+
 from pyspark.sql import SparkSession, functions as F
 
 HDFS = "hdfs://namenode:8020"
+SRC = os.environ.get("MUA_SRC", f"{HDFS}/mua/parquet/suggestions_top10")
+OUT = os.environ.get("MUA_OUT", f"{HDFS}/mua/export/suggestions")
 
 spark = (
     SparkSession.builder.appName("buoi06-export")
@@ -22,7 +30,7 @@ items = (
 # suggestions_top10: mỗi dòng = 1 user + mảng 10 (item_int, rating) đã xếp theo điểm giảm dần
 # posexplode lấy cả vị trí trong mảng -> rank 1..10
 sug = (
-    spark.read.parquet(f"{HDFS}/mua/parquet/suggestions_top10")
+    spark.read.parquet(SRC)
     .select(
         F.format_string("u%05d", "user_int").alias("userId"),
         F.posexplode("recommendations").alias("pos", "rec"),
@@ -41,9 +49,7 @@ out = (
             "item_id", "name", "style", "price", "score")
 )
 
-out.coalesce(1).orderBy("userId", "rank").write.mode("overwrite").json(
-    f"{HDFS}/mua/export/suggestions"
-)
-print("Đã ghi gợi ý ra hdfs:///mua/export/suggestions (jsonl, mỗi dòng 1 gợi ý)")
+out.coalesce(1).orderBy("userId", "rank").write.mode("overwrite").json(OUT)
+print(f"Đã ghi gợi ý từ {SRC} ra {OUT} (jsonl, mỗi dòng 1 gợi ý)")
 
 spark.stop()
